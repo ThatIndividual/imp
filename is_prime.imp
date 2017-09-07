@@ -1,0 +1,17 @@
+; Returns a number's smallest divisor, barring one.
+; Prime numbers are divisible only with themselves.
+DATA
+    135341 2
+INS
+        load 0
+        load 1
+work:   eqjp @is_p
+        over
+        over
+        mod
+        eqzjp @not_p
+        drop
+        inc
+        jump @work
+not_p:  drop
+is_p:   nip

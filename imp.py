@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import sys
+import asm
 
 NOOP = 0x00    # ( -- )
 DROP = 0x01    # (a -- )
@@ -25,6 +27,7 @@ LTJP = 0x13
 EQZJP = 0x14
 GTZJP = 0x15
 LTZJP = 0x16
+
 
 class Imp(object):
     def __init__(self, data, ins):
@@ -155,38 +158,11 @@ class Imp(object):
 
             return 1
 
+
 if __name__ == "__main__":
-    gcd = {
-        # Computes the greatest common divisor of two numbers.
-        # Those numbers must be placed in slots 0 and 1.
-        "data" : [2312, 320],
-        "ins" : [LOAD, 0,    # 00, 01
-                 LOAD, 1,    # 02, 03
-                 EQZJP, 11,  # 04, 05
-                 SWAP,       # 06
-                 OVER,       # 07
-                 MOD,        # 08
-                 JUMP, 4,    # 09, 10
-                 DROP,       # 11
-                 ]
-    }
-    is_prime = {
-        # If given a prime number, it will return that same number.
-        # If given a non-prime number, it will return its smallest divisor.
-        "data" : [135341, 2],
-        "ins" : [LOAD, 0,    # 00, 01
-                 LOAD, 1,    # 02, 03
-                 EQJP, 16,   # 04, 05
-                 OVER,       # 06
-                 OVER,       # 07
-                 MOD,        # 08
-                 EQZJP, 15,  # 09, 10
-                 DROP,       # 11
-                 INC,        # 12
-                 JUMP, 4,    # 13, 14
-                 DROP,       # 15
-                 NIP,        # 16
-                 ]
-    }
-    imp = Imp(**is_prime)
-    imp.run()
+    if len(sys.argv) == 2:
+        routine = asm.asm(sys.argv[1])
+        imp = Imp(**routine)
+        imp.run()
+    else:
+        print("Usage: imp routine.imp")
