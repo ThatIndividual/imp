@@ -1,12 +1,13 @@
 ; Calculates the greatest common divisor of two numbers.
 DATA
-    2312 320
 INS
-        load 0
-        load 1
-work:   eqzjp @end
+        in
+        in
+work:   dup
+        eqzjp @end
         swap
         over
         mod
         jump @work
 end:    drop
+        out

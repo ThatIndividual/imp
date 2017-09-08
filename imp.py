@@ -2,35 +2,39 @@
 import sys
 import asm
 
-NOOP = 0x00    # ( -- )
-DROP = 0x01    # (a -- )
-LOAD = 0x02    # ( -- a)
-DUP = 0x03  # (a -- aa)
-SWAP = 0x04    # (ab -- ba)
-OVER = 0x05    # (ab -- aba)
-ROT = 0x06  # (abc -- bca)
-NIP = 0x07     # (ab -- b)
-TUCK = 0x08    # (ab -- aba)
+NOOP = 0x00  # ( -- )
+DROP = 0x01  # (a -- )
+LOAD = 0x02  # ( -- a)
+DUP  = 0x03  # (a -- aa)
+SWAP = 0x04  # (ab -- ba)
+OVER = 0x05  # (ab -- aba)
+ROT  = 0x06  # (abc -- bca)
+NIP  = 0x07  # (ab -- b)
+TUCK = 0x08  # (ab -- aba)
 
 ADD = 0x09  # (ab -- c)
-INC = 0x0A
-DEC = 0x0B
-SUB = 0x0C
-MUL = 0x0D
-DIV = 0x0E
-MOD = 0x0F
+INC = 0x0A  # (a -- b)
+DEC = 0x0B  # (a -- b)
+SUB = 0x0C  # (ab -- c)
+MUL = 0x0D  # (ab -- c)
+DIV = 0x0E  # (ab -- c)
+MOD = 0x0F  # (ab -- c)
 
-JUMP = 0x10
-EQJP = 0x11
-GTJP = 0x12
-LTJP = 0x13
-EQZJP = 0x14
-GTZJP = 0x15
-LTZJP = 0x16
+JUMP  = 0x10  # ( -- )
+EQJP  = 0x11  # (ab -- )
+GTJP  = 0x12  # (ab -- )
+LTJP  = 0x13  # (ab -- )
+EQZJP = 0x14  # (a -- )
+GTZJP = 0x15  # (a -- )
+LTZJP = 0x16  # (a -- )
+
+IN  = 0x17  # ( -- a)
+OUT = 0x18  # (a -- )
 
 
 class Imp(object):
-    def __init__(self, data, ins):
+    def __init__(self, debug, data, ins):
+        self.debug = debug
         self.data = data
         self.ins = ins
         self.ip = 0
@@ -38,20 +42,21 @@ class Imp(object):
 
     def run(self):
         while True:
+            if self.debug:
+                print(self.stack)
             ret = self.execute()
             if ret == -1:
                 break
             else:
                 self.ip += ret
-            # print(self.stack)
-        print(self.stack)
 
     def execute(self):
         if self.ip == len(self.ins):
             return -1
         else:
             ins = self.ins[self.ip]
-            # print(str(self.ip) + " -- " + format(ins, '02X'))
+            if self.debug:
+                print(str(self.ip) + " -- " + format(ins, '02X'))
 
             if ins == NOOP:
                 pass
@@ -103,7 +108,7 @@ class Imp(object):
             elif ins == DIV:
                 b = self.stack.pop()
                 a = self.stack.pop()
-                res = a / b
+                res = a // b
                 self.stack.append(res)
             elif ins == MOD:
                 b = self.stack.pop()
@@ -115,54 +120,68 @@ class Imp(object):
                 return 0
             elif ins == EQJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-2] == self.stack[-1]:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                if a == b:
                     self.ip = addr
                     return 0
                 else:
                     return 2
             elif ins == GTJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-2] > self.stack[-1]:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                if a > b:
                     self.ip = addr
                     return 0
                 else:
                     return 2
             elif ins == LTJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-2] < self.stack[-1]:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                if a < b:
                     self.ip = addr
                     return 0
                 else:
                     return 2
             elif ins == EQZJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-1] == 0:
+                a = self.stack.pop()
+                if a == 0:
                     self.ip = addr
                     return 0
                 else:
                     return 2
             elif ins == GTZJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-1] > 0:
+                a = self.stack.pop()
+                if a > 0:
                     self.ip = addr
                     return 0
                 else:
                     return 2
             elif ins == LTZJP:
                 addr = self.ins[self.ip + 1]
-                if self.stack[-1] < 0:
+                a = self.stack.pop()
+                if a < 0:
                     self.ip = addr
                     return 0
                 else:
                     return 2
+            elif ins == IN:
+                self.stack.append(int(input(" < ")))
+            elif ins == OUT:
+                print(" > " + str(self.stack.pop()))
 
             return 1
 
 
 if __name__ == "__main__":
+
     if len(sys.argv) == 2:
         routine = asm.asm(sys.argv[1])
-        imp = Imp(**routine)
+        imp = Imp(False, **routine)
         imp.run()
     else:
         print("Usage: imp routine.imp")

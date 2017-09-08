@@ -1,0 +1,11 @@
+; Computes ((4 + 2) * 8 ) / 6
+DATA
+    4 2 8 6
+INS
+    load 0
+    load 1
+    add
+    load 2
+    mul
+    load 3
+    div

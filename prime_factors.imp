@@ -1,0 +1,24 @@
+; Returns all the prime factors of a positive integer.
+DATA
+        2 1
+INS
+        in
+        load 0
+main:   swap
+        dup
+        load 1
+        eqjp @end
+factor: swap
+        over
+        over
+        mod
+        gtzjp @next
+        dup
+        out
+        swap
+        over
+        div
+        jump @factor
+next:   inc
+        jump @main
+end:    noop

@@ -26,6 +26,9 @@ str_ops = {
     "eqzjp": 0x14,
     "gtzjp": 0x15,
     "ltzjp": 0x16,
+
+    "in" : 0x17,
+    "out": 0x18
 }
 
 
