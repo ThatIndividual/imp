@@ -1,6 +1,6 @@
 ; Returns a number's smallest divisor, barring one.
 ; Prime numbers are divisible only with themselves.
-DATA
+DAT
         2
 INS
         in

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import sys
 import asm
 
 NOOP = 0x00  # ( -- )
@@ -178,7 +177,7 @@ class Imp(object):
 
 
 if __name__ == "__main__":
-
+    import sys
     if len(sys.argv) == 2:
         routine = asm.asm(sys.argv[1])
         imp = Imp(False, **routine)

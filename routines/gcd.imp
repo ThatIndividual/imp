@@ -1,5 +1,5 @@
 ; Calculates the greatest common divisor of two numbers.
-DATA
+DAT
 INS
         in
         in

@@ -1,5 +1,5 @@
 ; Computes ((4 + 2) * 8 ) / 6
-DATA
+DAT
     4 2 8 6
 INS
     load 0
@@ -9,3 +9,4 @@ INS
     mul
     load 3
     div
+    out
