@@ -33,24 +33,37 @@ enum op {
     OUT = 0x18
 };
 
+struct obj {
+    uint32_t *data;
+    uint8_t  *ins;
+    uint8_t   no_data;
+    uint8_t   no_ins;
+};
+
 char *to_str[] = {
     "noop", "drop", "load", "dup", "swap", "over", "rot", "nip", "tuck", "add",
     "inc", "dec", "sub", "mul", "div", "mod", "jump", "eqjp", "gtjp", "ltjp",
     "eqzjp", "gtzjp", "ltzjp", "in", "out"
 };
 
-void read_obj(const char *filename);
-int  op_has_arg(enum op op);
+struct obj *obj_read(const char *filename);
+struct obj *obj_new(uint8_t no_data, uint32_t *data, uint8_t no_ins, uint8_t *ins);
+void        obj_print(struct obj *obj);
+int         op_has_arg(enum op op);
 
 int main(int argc, const char *argv[])
 {
-    if (argc == 2)
-        read_obj(argv[1]);
+    if (argc == 2) {
+        struct obj *obj;
+
+        obj = obj_read(argv[1]);
+        obj_print(obj);
+    }
     else
         printf("Usage: imp routine.obj\n");
 }
 
-void read_obj(const char *filename)
+struct obj *obj_read(const char *filename)
 {
     FILE *file = fopen(filename, "rb");
 
@@ -69,11 +82,6 @@ void read_obj(const char *filename)
     data = calloc(no_data, 4);
     fread(data, 4, no_data, file);
 
-    puts("DAT");
-    for (int i = 0; i < no_data; ++i) {
-        printf("%3i    %"PRIu32"\n", i, data[i]);
-    }
-
     /* read no of instructions; 1 byte */
     uint8_t no_ins;
     fread(&no_ins, 1, 1, file);
@@ -83,11 +91,32 @@ void read_obj(const char *filename)
     ins = calloc(no_ins, 1);
     fread(ins, 1, no_ins, file);
 
+    return obj_new(no_data, data, no_ins, ins);
+}
+
+struct obj *obj_new(uint8_t no_data, uint32_t *data, uint8_t no_ins, uint8_t *ins)
+{
+    struct obj *obj = malloc(sizeof(struct obj));
+    obj->no_data = no_data;
+    obj->data = data;
+    obj->no_ins = no_ins;
+    obj->ins = ins;
+
+    return obj;
+}
+
+void obj_print(struct obj *obj)
+{
+    puts("DAT");
+    for (int i = 0; i < obj->no_data; ++i) {
+        printf("%3i    %"PRIu32"\n", i, obj->data[i]);
+    }
+
     puts("INS");
-    for (int i = 0; i < no_ins;) {
-        uint8_t op = ins[i];
+    for (int i = 0; i < obj->no_ins;) {
+        uint8_t op = obj->ins[i];
         if (op_has_arg(op)) {
-            printf("%3i    %s %"PRIu8"\n", i, to_str[op], ins[i+1]);
+            printf("%3i    %s %"PRIu8"\n", i, to_str[op], obj->ins[i+1]);
             i += 2;
         }
         else {
