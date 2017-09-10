@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 
 enum op {
@@ -33,6 +34,18 @@ enum op {
     OUT = 0x18,
 };
 
+struct obj {
+    uint32_t *data;
+     uint8_t *ins;
+    struct {
+        uint8_t magic_number[3];
+        uint8_t maj_ver;
+        uint8_t min_ver;
+        uint8_t data_size;
+        uint8_t ins_size;
+    } header;
+};
+
 struct stack {
     uint32_t *data;
     uint32_t  index;
@@ -46,18 +59,6 @@ struct VM {
          uint8_t  ip;
          uint8_t  data_size;
          uint8_t  ins_size;
-};
-
-struct obj {
-    uint32_t *data;
-     uint8_t *ins;
-    struct {
-        uint8_t magic_number[3];
-        uint8_t maj_ver;
-        uint8_t min_ver;
-        uint8_t data_size;
-        uint8_t ins_size;
-    } header;
 };
 
 char *to_str[] = {
@@ -84,13 +85,12 @@ int main(int argc, const char *argv[])
 {
     if (argc == 2) {
         struct obj *obj = Obj_read(argv[1]);
-        Obj_dump(obj);
 
         struct VM *vm = VM_new(obj);
         VM_run(vm);
     }
     else
-        printf("Usage: imp routine.obj\n");
+        printf("Usage: imp [input.obj]\n");
 }
 
 struct obj *Obj_read(const char *filename)
