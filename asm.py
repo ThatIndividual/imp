@@ -99,18 +99,27 @@ def hexit(num, no_bytes=8):
 
 def objectify(routine, filename):
     file = open(filename, "wb")
+    # write magic number "imp", 3 bytes
+    file.write(b'i')
+    file.write(b'm')
+    file.write(b'p')
+
     # write version number 1.0, 2 bytes
-    file.write(hexit(1, 1))
-    file.write(hexit(0, 1))
+    file.write(hexit(255, 1))
+    file.write(hexit(255, 1))
+
     # write number of data values, 1 byte
     no_data = len(routine["data"])
     file.write(hexit(no_data, 1))
-    # write data as 4 byte ints
-    for data in routine["data"]:
-        file.write(hexit(data, 4))
+
     # write number of instructions, 1 byte
     no_ins = len(routine["ins"])
     file.write(hexit(no_ins, 1))
+
+    # write data as 4 byte unsigned ints
+    for data in routine["data"]:
+        file.write(hexit(data, 4))
+
     # write instructions, 1 byte each
     for ins in routine["ins"]:
         file.write(hexit(ins, 1))
