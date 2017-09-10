@@ -32,6 +32,8 @@ enum op {
 
     IN  = 0x17,
     OUT = 0x18,
+
+    HALT = 0x19
 };
 
 struct obj {
@@ -111,8 +113,9 @@ struct obj *Obj_read(const char *filename)
     fread(obj->data, 4, obj->header.data_size, file);
 
     /* read instructions; 1 byte */
-    obj->ins = calloc(obj->header.ins_size, 1);
+    obj->ins = calloc(obj->header.ins_size + 1, 1);
     fread(obj->ins, 1, obj->header.ins_size, file);
+    obj->ins[obj->header.ins_size] = HALT;
 
     return obj;
 }
@@ -172,180 +175,206 @@ struct VM *VM_new(struct obj *obj)
 
 void VM_run(struct VM *vm)
 {
-    while (vm->ip != vm->ins_size) {
-        VM_exec(vm);
-    }
-}
-
-void VM_exec(struct VM *vm)
-{
     uint32_t a, b, c;
-    uint8_t addr, op;
+    uint8_t addr;
+    static void *dispatch_table[] = {
+        &&do_noop, &&do_drop, &&do_load, &&do_dup, &&do_swap, &&do_over,
+        &&do_rot, &&do_nip, &&do_tuck, &&do_add, &&do_inc, &&do_dec, &&do_sub,
+        &&do_mul, &&do_div, &&do_mod, &&do_jump, &&do_eqjp, &&do_gtjp,
+        &&do_ltjp, &&do_eqzjp, &&do_gtzjp, &&do_ltzjp, &&do_in, &&do_out,
+        &&do_halt
+    };
+    #define DISPATCH goto *dispatch_table[vm->ins[vm->ip]]
 
-    op = vm->ins[vm->ip];
-    switch (op)
-    {
-        case NOOP:
+    DISPATCH;
+
+    do_noop:
+        ++vm->ip;
+        DISPATCH;
+
+    do_drop:
+        Stack_pop(vm->stack);
+        ++vm->ip;
+        DISPATCH;
+
+    do_load:
+        ++vm->ip;
+        addr = vm->ins[vm->ip];
+        Stack_push(vm->stack, vm->data[addr]);
+        ++vm->ip;
+        DISPATCH;
+
+    do_dup:
+        a = Stack_peek(vm->stack, 0);
+        Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_swap:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, b);
+        Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_over:
+        a = Stack_peek(vm->stack, 1);
+        Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_rot:
+        c = Stack_pop(vm->stack);
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, b);
+        Stack_push(vm->stack, c);
+        Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_nip:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_tuck:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, b);
+        Stack_push(vm->stack, a);
+        Stack_push(vm->stack, b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_add:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a + b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_inc:
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a + 1);
+        ++vm->ip;
+        DISPATCH;
+
+    do_dec:
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a - 1);
+        ++vm->ip;
+        DISPATCH;
+
+    do_sub:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a - b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_mul:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a * b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_div:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a / b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_mod:
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, a % b);
+        ++vm->ip;
+        DISPATCH;
+
+    do_jump:
+        ++vm->ip;
+        addr = vm->ins[vm->ip];
+        vm->ip = addr;
+        DISPATCH;
+
+    do_eqjp:
+        ++vm->ip;
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        if (a == b)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            break;
-        case DROP:
-            Stack_pop(vm->stack);
+        DISPATCH;
+
+    do_gtjp:
+        ++vm->ip;
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        if (a > b)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            break;
-        case LOAD:
+        DISPATCH;
+
+    do_ltjp:
+        ++vm->ip;
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        if (a < b)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            addr = vm->ins[vm->ip];
-            Stack_push(vm->stack, vm->data[addr]);
+        DISPATCH;
+
+    do_eqzjp:
+        ++vm->ip;
+        a = Stack_pop(vm->stack);
+        if (a == 0)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            break;
-        case DUP:
-            a = Stack_peek(vm->stack, 0);
-            Stack_push(vm->stack, a);
+        DISPATCH;
+
+    do_gtzjp:
+        ++vm->ip;
+        a = Stack_pop(vm->stack);
+        if (a > 0)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            break;
-        case SWAP:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, b);
-            Stack_push(vm->stack, a);
+        DISPATCH;
+
+    do_ltzjp:
+        ++vm->ip;
+        a = Stack_pop(vm->stack);
+        if (a < 0)
+            vm->ip = vm->ins[vm->ip];
+        else
             ++vm->ip;
-            break;
-        case OVER:
-            a = Stack_peek(vm->stack, 1);
-            Stack_push(vm->stack, a);
-            ++vm->ip;
-            break;
-        case ROT:
-            c = Stack_pop(vm->stack);
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, b);
-            Stack_push(vm->stack, c);
-            Stack_push(vm->stack, a);
-            ++vm->ip;
-            break;
-        case NIP:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, b);
-            ++vm->ip;
-            break;
-        case TUCK:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, b);
-            Stack_push(vm->stack, a);
-            Stack_push(vm->stack, b);
-            ++vm->ip;
-            break;
-        case ADD:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a + b);
-            ++vm->ip;
-            break;
-        case INC:
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a + 1);
-            ++vm->ip;
-            break;
-        case DEC:
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a - 1);
-            ++vm->ip;
-            break;
-        case SUB:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a - b);
-            ++vm->ip;
-            break;
-        case MUL:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a * b);
-            ++vm->ip;
-            break;
-        case DIV:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a / b);
-            ++vm->ip;
-            break;
-        case MOD:
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            Stack_push(vm->stack, a % b);
-            ++vm->ip;
-            break;
-        case JUMP:
-            ++vm->ip;
-            addr = vm->ins[vm->ip];
-            vm->ip = addr;
-            break;
-        case EQJP:
-            ++vm->ip;
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            if (a == b)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case GTJP:
-            ++vm->ip;
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            if (a > b)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case LTJP:
-            ++vm->ip;
-            b = Stack_pop(vm->stack);
-            a = Stack_pop(vm->stack);
-            if (a < b)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case EQZJP:
-            ++vm->ip;
-            a = Stack_pop(vm->stack);
-            if (a == 0)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case GTZJP:
-            ++vm->ip;
-            a = Stack_pop(vm->stack);
-            if (a > 0)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case LTZJP:
-            ++vm->ip;
-            a = Stack_pop(vm->stack);
-            if (a < 0)
-                vm->ip = vm->ins[vm->ip];
-            else
-                ++vm->ip;
-            break;
-        case IN:
-            printf(" < ");
-            scanf("%"SCNu32"", &a);
-            Stack_push(vm->stack, a);
-            ++vm->ip;
-            break;
-        case OUT:
-            a = Stack_pop(vm->stack);
-            printf(" > %"PRIu32"\n", a);
-            ++vm->ip;
-            break;
-    }
+        DISPATCH;
+
+    do_in:
+        printf(" < ");
+        scanf("%"SCNu32"", &a);
+        Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_out:
+        a = Stack_pop(vm->stack);
+        printf(" > %"PRIu32"\n", a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_halt:
+        return;
 }
 
 struct stack *Stack_new(void)
