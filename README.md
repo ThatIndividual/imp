@@ -94,7 +94,7 @@ swap    |(ab -- ba)    |
 over    |(ab -- aba)   |
 rot     |(abc -- bca)  |
 nip     |(ab -- b)     |
-tuck    |(ab -- aba)   |
+tuck    |(ab -- bab)   |
 add     |(ab -- c)     |
 inc     |(a -- b)      | Increments a value by one.
 dec     |(a -- b)      | Decrements a value by one.
