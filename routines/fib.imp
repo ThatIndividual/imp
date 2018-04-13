@@ -7,11 +7,9 @@ INS
         in
 loop:   dup
         eqzjp @end
-        rot
-        rot
+        urot
         dup
-        rot
-        rot
+        urot
         add
         rot
         dec

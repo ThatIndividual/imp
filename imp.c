@@ -11,29 +11,30 @@ enum op {
     SWAP = 0x04,
     OVER = 0x05,
     ROT  = 0x06,
-    NIP  = 0x07,
-    TUCK = 0x08,
+    UROT = 0x07,
+    NIP  = 0x08,
+    TUCK = 0x09,
 
-    ADD = 0x09,
-    INC = 0x0A,
-    DEC = 0x0B,
-    SUB = 0x0C,
-    MUL = 0x0D,
-    DIV = 0x0E,
-    MOD = 0x0F,
+    ADD = 0x0A,
+    INC = 0x0B,
+    DEC = 0x0C,
+    SUB = 0x0D,
+    MUL = 0x0E,
+    DIV = 0x0F,
+    MOD = 0x10,
 
-    JUMP = 0x10,
-    EQJP = 0x11,
-    GTJP = 0x12,
-    LTJP = 0x13,
-    EQZJP = 0x14,
-    GTZJP = 0x15,
-    LTZJP = 0x16,
+    JUMP = 0x11,
+    EQJP = 0x12,
+    GTJP = 0x13,
+    LTJP = 0x14,
+    EQZJP = 0x15,
+    GTZJP = 0x16,
+    LTZJP = 0x17,
 
-    IN  = 0x17,
-    OUT = 0x18,
+    IN  = 0x18,
+    OUT = 0x19,
 
-    HALT = 0x19
+    HALT = 0x1A
 };
 
 struct obj {
@@ -64,9 +65,9 @@ struct VM {
 };
 
 char *to_str[] = {
-    "noop", "drop", "load", "dup", "swap", "over", "rot", "nip", "tuck", "add",
-    "inc", "dec", "sub", "mul", "div", "mod", "jump", "eqjp", "gtjp", "ltjp",
-    "eqzjp", "gtzjp", "ltzjp", "in", "out"
+    "noop", "drop", "load", "dup", "swap", "over", "rot", "urot", "nip", "tuck",
+    "add", "inc", "dec", "sub", "mul", "div", "mod", "jump", "eqjp", "gtjp",
+    "ltjp", "eqzjp", "gtzjp", "ltzjp", "in", "out"
 };
 
 struct obj *Obj_read(const char *filename);
@@ -179,8 +180,8 @@ void VM_run(struct VM *vm)
     uint8_t addr;
     static void *dispatch_table[] = {
         &&do_noop, &&do_drop, &&do_load, &&do_dup, &&do_swap, &&do_over,
-        &&do_rot, &&do_nip, &&do_tuck, &&do_add, &&do_inc, &&do_dec, &&do_sub,
-        &&do_mul, &&do_div, &&do_mod, &&do_jump, &&do_eqjp, &&do_gtjp,
+        &&do_rot, &&do_urot, &&do_nip, &&do_tuck, &&do_add, &&do_inc, &&do_dec,
+        &&do_sub, &&do_mul, &&do_div, &&do_mod, &&do_jump, &&do_eqjp, &&do_gtjp,
         &&do_ltjp, &&do_eqzjp, &&do_gtzjp, &&do_ltzjp, &&do_in, &&do_out,
         &&do_halt
     };
@@ -231,6 +232,16 @@ void VM_run(struct VM *vm)
         Stack_push(vm->stack, b);
         Stack_push(vm->stack, c);
         Stack_push(vm->stack, a);
+        ++vm->ip;
+        DISPATCH;
+
+    do_urot:
+        c = Stack_pop(vm->stack);
+        b = Stack_pop(vm->stack);
+        a = Stack_pop(vm->stack);
+        Stack_push(vm->stack, c);
+        Stack_push(vm->stack, a);
+        Stack_push(vm->stack, b);
         ++vm->ip;
         DISPATCH;
 
